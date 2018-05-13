@@ -7,7 +7,7 @@ kmeans_clustering(cluster_list, num_clusters, num_iterations)
 Import your solution code below as "student"
 """
 
-import random
+
 #urllib2 not available in Python3
 from urllib.request import urlopen
 

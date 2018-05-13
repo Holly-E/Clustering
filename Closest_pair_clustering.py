@@ -19,23 +19,6 @@ import alg_cluster
 import math
  
 
-TEST_CASE= [alg_cluster.Cluster(set(['00']), 0.0, 0.0, 1, 0.1),
-
-alg_cluster.Cluster(set(['10']), 1.0, 0.0, 2, 0.1),
-
-alg_cluster.Cluster(set(['11']), 1.0, 1.0, 3, 0.1),
-
-alg_cluster.Cluster(set(['01']), 0.0, 1.0, 4, 0.1),
-
-alg_cluster.Cluster(set(['1010']), 10.0, 10.0, 5, 0.1),
-
-alg_cluster.Cluster(set(['1011']), 10.0, 11.0, 6, 0.1),
-
-alg_cluster.Cluster(set(['1111']), 11.0, 11.0, 7, 0.1),
-
-alg_cluster.Cluster(set(['1110']), 11.0, 10.0, 8, 0.1)]
-
-
 ######################################################
 # Code for closest pairs of clusters
 
@@ -96,7 +79,8 @@ def fast_closest_pair(cluster_list):
     cluster_list[idx1] and cluster_list[idx2] have minimum distance dist.       
     """
 
-
+    #cluster_list = sort_clusters(cluster_list)
+    
     num_clusters = len(cluster_list)
     if num_clusters <= 3:
         smallest_dist = slow_closest_pair(cluster_list)
@@ -170,8 +154,16 @@ def hierarchical_clustering(cluster_list, num_clusters):
     Input: List of clusters, integer number of clusters
     Output: List of clusters whose length is num_clusters
     """
+    copy_clusters = list(cluster_list)
     
-    return []
+    while len(copy_clusters) > num_clusters:
+        #find two closest clusters and merge into one, sort each iteration as horiz_center can change after merge
+        sorted_clusters = sort_clusters(copy_clusters)
+        closest_pair = fast_closest_pair(sorted_clusters)
+        sorted_clusters[closest_pair[1]].merge_clusters(sorted_clusters[closest_pair[2]])
+        sorted_clusters.pop(closest_pair[2])
+        copy_clusters = sorted_clusters
+    return copy_clusters
 
 
 ######################################################################
@@ -186,8 +178,29 @@ def kmeans_clustering(cluster_list, num_clusters, num_iterations):
     Input: List of clusters, integers number of clusters and number of iterations
     Output: List of clusters whose length is num_clusters
     """
-
+    copy_clusters = list(cluster_list)
+    len_clusters = len(copy_clusters)
+    
     # position initial clusters at the location of clusters with largest populations
-            
-    return []
+    copy_clusters.sort(key = lambda cluster: cluster.total_population())  
+    k_centers = []
+    for idx in range(len_clusters - num_clusters, len_clusters):
+        k_centers.append((copy_clusters[idx].horiz_center(), copy_clusters[idx].vert_center()))
+    
+    while num_iterations > 0:
+        num_iterations -= 1
+        c_groups = [alg_cluster.Cluster(set(),0,0,0,0) for _dummy_idx in range(num_clusters)]
+        
+        for idx_j in range(len_clusters):
+            # add each cluster to the closest k_center group and recalculate k_center
+            closest_k = (float("inf"), -1)
+            for idx_k in range(num_clusters):
+                # get distance from current cluster to current k_center & find closest k_center
+                test_dist = math.sqrt(abs(k_centers[idx_k][0] - copy_clusters[idx_j].horiz_center())**2 + abs(k_centers[idx_k][1] - copy_clusters[idx_j].vert_center())**2)
+                if closest_k[0] > test_dist:
+                    closest_k = (test_dist, idx_k)
+            c_groups[closest_k[1]].merge_clusters(copy_clusters[idx_j])
+        for idx in range(num_clusters):
+            k_centers[idx] = (c_groups[idx].horiz_center(), c_groups[idx].vert_center())
+    return c_groups
 
